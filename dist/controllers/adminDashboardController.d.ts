@@ -1,0 +1,10 @@
+import { Response } from 'express';
+export declare const getSystemStatistics: (_req: any, res: Response) => Promise<void>;
+export declare const getRestaurantStatus: (_req: any, res: Response) => Promise<void>;
+export declare const getLiveOrderActivity: (_req: any, res: Response) => Promise<void>;
+export declare const getFinancialData: (_req: any, res: Response) => Promise<void>;
+export declare const getSystemHealth: (_req: any, res: Response) => Promise<void>;
+export declare const getActivityFeed: (_req: any, res: Response) => Promise<void>;
+export declare const getPerformanceAnalytics: (_req: any, res: Response) => Promise<void>;
+export declare const getSystemAlerts: (_req: any, res: Response) => Promise<void>;
+export declare const performQuickAction: (_req: any, res: Response) => Promise<void>;

@@ -1,0 +1,27 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const branchDashboardController_1 = require("../controllers/branchDashboardController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const client_1 = require("@prisma/client");
+const feedbackController_1 = require("../controllers/feedbackController");
+const router = (0, express_1.Router)();
+router.get('/feedback/stats', branchDashboardController_1.getFeedbackStats);
+router.get('/customer-feedback', branchDashboardController_1.getCustomerFeedback);
+router.put('/feedback/:feedbackId/assign', feedbackController_1.assignFeedback);
+router.put('/feedback/:feedbackId/status', feedbackController_1.updateFeedbackStatus);
+router.use(authMiddleware_1.authenticateToken);
+router.get('/dashboard', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getBranchDashboard);
+router.get('/daily-sales', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getDailySales);
+router.get('/active-orders', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getActiveOrders);
+router.get('/staff-on-shift', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getStaffOnShift);
+router.get('/inventory-alerts', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getInventoryAlerts);
+router.get('/weekly-trend', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getWeeklyTrend);
+router.get('/metrics', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getBranchMetricsSimple);
+router.get('/reports/sales', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getSalesReport);
+router.get('/reports/inventory', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getInventoryReport);
+router.get('/reports/staff-performance', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getStaffPerformance);
+router.get('/reports/order-analytics', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.getOrderAnalytics);
+router.get('/reports/export', (0, authMiddleware_1.authorizeRole)([client_1.Role.BRANCH_MANAGER]), branchDashboardController_1.exportBranchReport);
+exports.default = router;
+//# sourceMappingURL=branchDashboardRoutes.js.map

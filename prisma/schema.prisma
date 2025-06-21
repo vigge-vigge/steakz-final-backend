@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  CHEF
+  CASHIER
+  BRANCH_MANAGER
+  GENERAL_MANAGER
+  ADMIN
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  password      String
+  email         String    @unique
+  role          Role      @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Security fields
+  failedLoginAttempts Int       @default(0)
+  lastFailedLogin     DateTime?
+  lockedUntil         DateTime?
+  passwordResetToken  String?   @unique
+  resetTokenExpires   DateTime?
+  lastPasswordChange  DateTime  @default(now())
+    // Relations
+  orders        Order[]
+  branch        Branch?   @relation("BranchStaff", fields: [branchId], references: [id])
+  branchId      Int?
+  posts         Post[]    // Posts written by the user
+  comments      Comment[] // Comments written by the user
+  receipts      Receipt[] // Receipts created by cashier
+  
+  // Branch manager relation
+  managedBranch Branch?   @relation("BranchManager")
+  
+  // Self-referential relation for creator tracking
+  createdById   Int?
+  createdBy     User?     @relation("UserCreator", fields: [createdById], references: [id])
+  createdUsers  User[]    @relation("UserCreator")
+}
+
+model Branch {
+  id            Int       @id @default(autoincrement())
+  name          String
+  address       String
+  phone         String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  manager       User?     @relation("BranchManager", fields: [managerId], references: [id])
+  managerId     Int?      @unique
+  staff         User[]    @relation("BranchStaff")
+  inventory     InventoryItem[]
+  orders        Order[]
+  menuItems     MenuItem[]
+}
+
+model InventoryItem {
+  id            Int       @id @default(autoincrement())
+  name          String
+  quantity      Int
+  unit          String    // e.g., kg, pieces, etc.
+  minThreshold  Int       // Minimum quantity before reorder needed
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  branchId      Int
+  menuItems     MenuItem[]
+}
+
+model MenuItem {
+  id            Int       @id @default(autoincrement())
+  name          String
+  description   String
+  price         Float
+  category      String    // e.g., appetizer, main course, dessert
+  categoryId    Int?
+  menuCategory  MenuCategory? @relation(fields: [categoryId], references: [id])
+  isAvailable   Boolean   @default(true)
+  image         String?   // Image filename or URL
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  branchId      Int
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  
+  // Relations
+  ingredients   InventoryItem[]
+  orderItems    OrderItem[]
+
+  @@unique([name, branchId])
+}
+
+model Order {
+  id            Int       @id @default(autoincrement())
+  status        OrderStatus
+  totalAmount   Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deliveryAddress String? // Added for customer delivery
+    // Relations
+  customer      User      @relation(fields: [customerId], references: [id])
+  customerId    Int
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  branchId      Int
+  items         OrderItem[]
+  payment       Payment?
+  receipt       Receipt?
+}
+
+model OrderItem {
+  id            Int       @id @default(autoincrement())
+  quantity      Int
+  unitPrice     Float
+  subtotal      Float
+  
+  // Relations
+  order         Order     @relation(fields: [orderId], references: [id])
+  orderId       Int
+  menuItem      MenuItem  @relation(fields: [menuItemId], references: [id])
+  menuItemId    Int
+}
+
+model Payment {
+  id            Int       @id @default(autoincrement())
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  order         Order     @relation(fields: [orderId], references: [id])
+  orderId       Int       @unique
+}
+
+model Receipt {
+  id            Int       @id @default(autoincrement())
+  receiptNumber String    @unique
+  subtotal      Float
+  tax           Float
+  discount      Float     @default(0)
+  total         Float
+  paymentMethod PaymentMethod
+  customerName  String?
+  cashierName   String?
+  printedAt     DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  
+  // Relations
+  order         Order     @relation(fields: [orderId], references: [id])
+  orderId       Int       @unique
+  cashier       User      @relation(fields: [cashierId], references: [id])
+  cashierId     Int
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  published   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  rating      Int?      // Add rating for customer reviews
+  status      String?   @default("pending") // Add status for feedback workflow
+  assignedTo  String?   // Add assignedTo for feedback workflow
+  // Relations
+  author      User      @relation(fields: [authorId], references: [id])
+  authorId    Int
+  comments    Comment[]
+}
+
+model Comment {
+  id          Int       @id @default(autoincrement())
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+    // Relations
+  author      User?     @relation(fields: [authorId], references: [id])
+  authorId    Int?
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId      Int
+}
+
+model MenuCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  order     Int      @default(0)
+  menuItems MenuItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  MOBILE_PAYMENT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
